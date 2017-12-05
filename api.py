@@ -1,16 +1,14 @@
-import json
-from urllib.parse import urlparse
 from uuid import uuid4
 
-import requests
 from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
+from cbcast import CBCast
 
 app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
-myip = ""
+cbcast = CBCast(nodeId)
 
 
 @app.route('/', methods=['GET'])
@@ -47,13 +45,15 @@ def mine():
 @app.route('/transaction/new', methods=['POST'])
 def newTransaction():
     values = request.json
+    cbcast.receive(values)
 
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
     if "txid" not in values:
         values["txid"] = str(uuid4()).replace('-', '')
-    index = blockchain.newTransaction(values["txid"], values['sender'], values['recipient'], values['amount'])
+    index = blockchain.newTransaction(
+        values["txid"], values['sender'], values['recipient'], values['amount'])
     print(f"index:{index}")
     if index is None:
         response = {'message': f'Transaction was already added'}
@@ -83,6 +83,7 @@ def getNodes():
 @app.route('/nodes/register', methods=['POST'])
 def registerNodes():
     values = request.json
+    cbcast.receive(values)
     nodes = values.get('nodes')
     if nodes is None:
         return 'Error: Please supply a valid list of nodes', 400
@@ -92,7 +93,7 @@ def registerNodes():
         'message': 'New nodes have been added',
         'totalNodes': list(blockchain.nodes),
     }
-    values["nodes"] = [myip]
+    values["nodes"] = [cbcast.myip]
     broadcast("nodes/register", values)
     return jsonify(response), 201
 
@@ -114,19 +115,16 @@ def consensus():
 
 
 def broadcast(func, values):
-    received = set(values.get("received", []))
-    received.add(urlparse(myip).netloc)
-    values["received"] = list(received)
-    for node in blockchain.nodes - received:
-        requests.post(f"http://{node}/{func}", data=json.dumps(values), headers={"content-type": "application/json"})
+    cbcast.broadcast(func, values, blockchain.nodes)
 
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
+    parser.add_argument('-p', '--port', default=5000,
+                        type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
     # socket.gethostbyname(socket.gethostname())
-    myip = f"http://127.0.0.1:{port}"
+    cbcast.myip = f"http://127.0.0.1:{port}"
     app.run(host='0.0.0.0', port=port, debug=True)
