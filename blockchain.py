@@ -27,18 +27,24 @@ class Blockchain(object):
         self.chain.append(block)
         return block
 
-    def newTransaction(self, sender: str, recipient: str, amount: int) -> int:
+    def newTransaction(self, txid: str, sender: str, recipient: str, amount: int) -> int:
         """
         sender: 送り元のアドレス
         recipient: 送り先のアドレス
         return: blockのindex
         """
-        self.txpool.append({
-            'sender': sender,
-            'recipient': recipient,
-            'amount': amount,
-        })
-        return self.lastBlock['index'] + 1
+        # 重複しないかチェックする
+        txidList = [x["txid"] for x in self.txpool]
+        if txid in txidList:
+            return None
+        else:
+            self.txpool.append({
+                'txid': txid,
+                'sender': sender,
+                'recipient': recipient,
+                'amount': amount,
+            })
+            return self.lastBlock['index'] + 1
 
     @staticmethod
     def hash(block: dict) -> str:
@@ -63,11 +69,7 @@ class Blockchain(object):
 
     def registerNode(self, address: str):
         parsedUrl = urlparse(address)
-        if parsedUrl.netloc in self.nodes:
-            return True
-        else:
-            self.nodes.add(parsedUrl.netloc)
-            return False
+        self.nodes.add(parsedUrl.netloc)
 
     def validChain(self, chain: list) -> bool:
         lastBlock = chain[0]

@@ -1,8 +1,13 @@
-from flask import Flask, jsonify, request
-from uuid import uuid4
-from blockchain import Blockchain
-import requests
+import asyncio
 import json
+from urllib.parse import urlparse
+from uuid import uuid4
+
+import grequests
+import requests
+from flask import Flask, jsonify, request
+
+from blockchain import Blockchain
 
 app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
@@ -18,6 +23,7 @@ def mine():
     reward = 100
 
     blockchain.newTransaction(
+        txid=str(uuid4()).replace('-', ''),
         sender="0",
         recipient=nodeId,
         amount=reward
@@ -41,9 +47,15 @@ def newTransaction():
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
-
-    index = blockchain.newTransaction(values['sender'], values['recipient'], values['amount'])
-    response = {'message': f'Transaction will be added to Block {index}'}
+    if "txid" not in values:
+        values["txid"] = str(uuid4()).replace('-', '')
+    index = blockchain.newTransaction(values["txid"], values['sender'], values['recipient'], values['amount'])
+    print(f"index:{index}")
+    if index is None:
+        response = {'message': f'Transaction was already added'}
+    else:
+        response = {'message': f'Transaction will be added to Block {index}'}
+    broadcast("transaction/new", values)
     return jsonify(response), 201
 
 
@@ -67,13 +79,14 @@ def getNodes():
 @app.route('/nodes/register', methods=['POST'])
 def registerNodes():
     values = request.json
+    print(values)
+    #received = set(values.get("received", []))
     nodes = values.get('nodes')
     if nodes is None:
         return 'Error: Please supply a valid list of nodes', 400
     for node in nodes:
-        duplicate = blockchain.registerNode(node)
-        if not duplicate and values.get('recursive', False):
-            requests.post(f"{node}/nodes/register", data=json.dumps({"nodes": [myip], "recursive": False}), headers={"content-type": "application/json"})
+        print(node)
+        blockchain.registerNode(node)
     response = {
         'message': 'New nodes have been added',
         'totalNodes': list(blockchain.nodes),
@@ -97,6 +110,14 @@ def consensus():
     return jsonify(response), 200
 
 
+def broadcast(func, values):
+    received = set(values.get("received", []))
+    received.add(urlparse(myip).netloc)
+    values["received"] = list(received)
+    for node in blockchain.nodes - received:
+        requests.post(f"http://{node}/{func}", data=json.dumps(values), headers={"content-type": "application/json"})
+
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
@@ -105,4 +126,4 @@ if __name__ == '__main__':
     port = args.port
     # socket.gethostbyname(socket.gethostname())
     myip = f"http://127.0.0.1:{port}"
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
