@@ -23,7 +23,15 @@ class Blockchain(object):
             'proof': proof,
             'previousHash': previousHash or self.hash(self.chain[-1]),
         }
-        self.txpool = []
+        return self.addBlock(block)
+
+    def addBlock(self, block):
+        leftTxids = set([x["txid"] for x in self.txpool]) - set([x["txid"] for x in block['transactions']])
+        leftTx = []
+        for tx in self.txpool:
+            if tx["txid"] in leftTxids:
+                leftTx.append(tx)
+        self.txpool = leftTx
         self.chain.append(block)
         return block
 

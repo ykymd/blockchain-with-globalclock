@@ -1,9 +1,7 @@
-import asyncio
 import json
 from urllib.parse import urlparse
 from uuid import uuid4
 
-import grequests
 import requests
 from flask import Flask, jsonify, request
 
@@ -13,6 +11,11 @@ app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 myip = ""
+
+
+@app.route('/', methods=['GET'])
+def hello():
+    return jsonify({}), 200
 
 
 @app.route('/mine', methods=['GET'])
@@ -37,6 +40,7 @@ def mine():
         'proof': block['proof'],
         'previousHash': block['previousHash'],
     }
+    broadcast("nodes/resolve", {})
     return jsonify(response), 200
 
 
@@ -79,18 +83,17 @@ def getNodes():
 @app.route('/nodes/register', methods=['POST'])
 def registerNodes():
     values = request.json
-    print(values)
-    #received = set(values.get("received", []))
     nodes = values.get('nodes')
     if nodes is None:
         return 'Error: Please supply a valid list of nodes', 400
     for node in nodes:
-        print(node)
         blockchain.registerNode(node)
     response = {
         'message': 'New nodes have been added',
         'totalNodes': list(blockchain.nodes),
     }
+    values["nodes"] = [myip]
+    broadcast("nodes/register", values)
     return jsonify(response), 201
 
 
