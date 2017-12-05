@@ -45,8 +45,10 @@ def mine():
 @app.route('/transaction/new', methods=['POST'])
 def newTransaction():
     values = request.json
-    cbcast.receive(values)
+    return cbcast.receive(values, _newTransaction)
 
+
+def _newTransaction(values):
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
@@ -83,7 +85,10 @@ def getNodes():
 @app.route('/nodes/register', methods=['POST'])
 def registerNodes():
     values = request.json
-    cbcast.receive(values)
+    return cbcast.receive(values, _registerNode)
+
+
+def _registerNode(values):
     nodes = values.get('nodes')
     if nodes is None:
         return 'Error: Please supply a valid list of nodes', 400

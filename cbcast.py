@@ -26,17 +26,18 @@ class CBCast(object):
         print(f"sender: {param}")
         return requests.post(url, data=json.dumps(param), headers={"content-type": "application/json"})
 
-    def receive(self, param):
+    def receive(self, param, callback):
         if param.get(self.sender_id, None) is None:
-            return
+            return callback(param)
         messageVector = param.get(self.vector_key, {})
         ret = self.checkReceivable(
             self.count, messageVector, param.get(self.sender_id, ""))
         print(f"receivable: {ret}")
         if ret:
-            self.updateMemoryVector(
-                param.get(self.sender_id, ""), messageVector)
-        print(self.count)
+            self.updateMemoryVector(param.get(self.sender_id, ""), messageVector)
+            print(self.count)
+            return callback(param)
+        return callback(param)
 
     def checkReceivable(self, memoryVector, messageVector, senderId):
         vj = messageVector.get(senderId, 0)
