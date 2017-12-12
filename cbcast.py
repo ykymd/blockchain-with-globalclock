@@ -11,6 +11,7 @@ class CBCast(object):
         self.myip = ""
         self.vector_key = "cbcast_vector"
         self.sender_id = "sender_id"
+        self.txqueue = []
 
     def broadcast(self, func, values, nodes):
         received = set(values.get("received", []))
@@ -36,8 +37,13 @@ class CBCast(object):
         if ret:
             self.updateMemoryVector(param.get(self.sender_id, ""), messageVector)
             print(self.count)
+            for q in self.txqueue:
+                self.receive(q["param"], q["callback"])
             return callback(param)
-        return callback(param)
+        else:
+            # キューに貯めて受信可能になるのを待つ
+            self.txqueue.append({"param": param, "callback": callback})
+            return callback(param)
 
     def checkReceivable(self, memoryVector, messageVector, senderId):
         vj = messageVector.get(senderId, 0)
