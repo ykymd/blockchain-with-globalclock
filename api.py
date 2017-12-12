@@ -9,6 +9,7 @@ app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 cbcast = CBCast(nodeId)
+print(f"nodeId: {nodeId}")
 
 
 @app.route('/', methods=['GET'])
@@ -48,7 +49,24 @@ def newTransaction():
     return cbcast.receive(values, _newTransaction)
 
 
+@app.route('/transaction/sim/late', methods=['POST'])
+def newTransactionLate():
+    values = request.json
+    createTransaction(values)
+    broadcast("transaction/new", values, 2)
+    del values["txid"]  # 新しいtxなのでtxidを削除
+    response = createTransaction(values)
+    broadcast("transaction/new", values, -1)
+    return jsonify(response), 201
+
+
 def _newTransaction(values):
+    response = createTransaction(values)
+    broadcast("transaction/new", values)
+    return jsonify(response), 201
+
+
+def createTransaction(values):
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
@@ -56,13 +74,12 @@ def _newTransaction(values):
         values["txid"] = str(uuid4()).replace('-', '')
     index = blockchain.newTransaction(
         values["txid"], values['sender'], values['recipient'], values['amount'])
-    print(f"index:{index}")
     if index is None:
         response = {'message': f'Transaction was already added'}
     else:
+        print(f'Transaction will be added to Block {index}')
         response = {'message': f'Transaction will be added to Block {index}'}
-    broadcast("transaction/new", values)
-    return jsonify(response), 201
+    return response
 
 
 @app.route('/chain/', methods=['GET'])
@@ -119,8 +136,8 @@ def consensus():
     return jsonify(response), 200
 
 
-def broadcast(func, values):
-    cbcast.broadcast(func, values, blockchain.nodes)
+def broadcast(func, values, additional=1):
+    cbcast.broadcast(func, values, blockchain.nodes, additional)
 
 
 if __name__ == '__main__':
