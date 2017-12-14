@@ -22,7 +22,7 @@ class CBCast(object):
         received.add(urlparse(self.myip).netloc)
         values["received"] = list(received)
         self.count[self.myId] += additional
-        #print(f"countupdated: {self.count[self.myId]}")
+        # print(f"countupdated: {self.count[self.myId]}")
         for node in nodes - received:
             self.send(f"http://{node}/{func}", values)
 
@@ -38,7 +38,7 @@ class CBCast(object):
             return callback(param)
         messageVector = param.get(self.vector_key, {})
         ret = self.checkReceivable(self.count, messageVector, sender_id)
-        #print(f"receivable: {ret}")
+        # print(f"receivable: {ret}")
         if ret:
             self.updateMemoryVector(sender_id, messageVector)
             print(f"[ACCEPT] {messageVector[sender_id]}")
@@ -56,10 +56,10 @@ class CBCast(object):
     def checkReceivable(self, memoryVector, messageVector, senderId):
         vj = messageVector.get(senderId, 0)
         lj = memoryVector.get(senderId, 0)
-        #print(f"vj: {vj}")
-        #print(f"lj: {lj}")
-        #print(f"vi: {messageVector.items()}")
-        #print(f"li: {memoryVector.items()}")
+        # print(f"vj: {vj}")
+        # print(f"lj: {lj}")
+        # print(f"vi: {messageVector.items()}")
+        # print(f"li: {memoryVector.items()}")
         if lj + 1 != vj:
             return False
         for k, vi in messageVector.items():
@@ -72,4 +72,4 @@ class CBCast(object):
     # 正しくメッセージが受信された時、正しく受信された最後の番号を入れる
     def updateMemoryVector(self, senderId, messageVector):
         self.count[senderId] = messageVector.get(senderId, 0)
-        #print(f"count updated: {self.count[senderId]}")
+        # print(f"count updated: {self.count[senderId]}")

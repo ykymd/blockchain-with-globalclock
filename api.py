@@ -57,6 +57,7 @@ def newTransactionLate():
     del values["txid"]  # 新しいtxなのでtxidを削除
     response = createTransaction(values)
     broadcast("transaction/new", values, -1)
+    cbcast.count[cbcast.myId] += 1
     return jsonify(response), 201
 
 
