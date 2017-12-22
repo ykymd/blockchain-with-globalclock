@@ -1,0 +1,12 @@
+# docker run -p 5000:5000 --name bc1 -dit blockchain python api.py
+version: '3'
+services:
+  bc:
+    build: .
+    ports:
+      - 80
+    #command: python main.py
+    networks:
+      - blockchain
+networks:
+  blockchain:

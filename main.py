@@ -1,3 +1,4 @@
+import socket
 from uuid import uuid4
 
 from flask import Flask, jsonify, request
@@ -83,6 +84,11 @@ def createTransaction(values):
     return response
 
 
+@app.route('/id', methods=['GET'])
+def getId():
+    return nodeId
+
+
 @app.route('/chain/', methods=['GET'])
 def fullChain():
     response = {
@@ -148,6 +154,6 @@ if __name__ == '__main__':
                         type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
-    # socket.gethostbyname(socket.gethostname())
-    cbcast.myip = f"http://127.0.0.1:{port}"
+    cbcast.myip = socket.gethostbyname(socket.gethostname())
+    # cbcast.myip = f"http://127.0.0.1:{port}"
     app.run(host='0.0.0.0', port=port, debug=True)
