@@ -11,6 +11,8 @@ nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 cbcast = CBCast(nodeId)
 print(f"nodeId: {nodeId}")
+cbcast.myip = socket.gethostbyname(socket.gethostname())
+print(f"myip: {cbcast.myip}")
 
 
 @app.route('/', methods=['GET'])
@@ -106,6 +108,14 @@ def getNodes():
     return jsonify(response), 200
 
 
+@app.route('/pool/', methods=['GET'])
+def getPools():
+    response = {
+        "tx": list(blockchain.txpool)
+    }
+    return jsonify(response), 200
+
+
 @app.route('/nodes/register', methods=['POST'])
 def registerNodes():
     values = request.json
@@ -117,17 +127,20 @@ def _registerNode(values):
     if nodes is None:
         return 'Error: Please supply a valid list of nodes', 400
     for node in nodes:
+        if node == f"http://{cbcast.myip}":
+            continue
         blockchain.registerNode(node)
     response = {
         'message': 'New nodes have been added',
         'totalNodes': list(blockchain.nodes),
     }
-    values["nodes"] = [cbcast.myip]
+    print(f"myip: {cbcast.myip}")
+    values["nodes"] = [f"http://{cbcast.myip}"]
     broadcast("nodes/register", values)
     return jsonify(response), 201
 
 
-@app.route('/nodes/resolve', methods=['GET'])
+@app.route('/nodes/resolve', methods=['GET', 'POST'])
 def consensus():
     replaced = blockchain.resolveConflicts()
     if replaced:
@@ -154,6 +167,5 @@ if __name__ == '__main__':
                         type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
-    cbcast.myip = socket.gethostbyname(socket.gethostname())
     # cbcast.myip = f"http://127.0.0.1:{port}"
     app.run(host='0.0.0.0', port=port, debug=True)

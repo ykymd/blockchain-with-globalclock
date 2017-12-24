@@ -1,8 +1,7 @@
+import hashlib
 import json
-from urllib.parse import urlparse
 
 import requests
-import hashlib
 
 
 class CBCast(object):
@@ -19,9 +18,10 @@ class CBCast(object):
 
     def broadcast(self, func, values, nodes, additional=1):
         received = set(values.get("received", []))
-        received.add(urlparse(self.myip).netloc)
+        received.add(self.myip)
         values["received"] = list(received)
         self.count[self.myId] += additional
+        print(f"received: {list(received)}")
         # print(f"countupdated: {self.count[self.myId]}")
         for node in nodes - received:
             self.send(f"http://{node}/{func}", values)

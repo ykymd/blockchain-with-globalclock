@@ -26,7 +26,8 @@ class Blockchain(object):
         return self.addBlock(block)
 
     def addBlock(self, block):
-        leftTxids = set([x["txid"] for x in self.txpool]) - set([x["txid"] for x in block['transactions']])
+        leftTxids = set([x["txid"] for x in self.txpool]) - \
+            set([x["txid"] for x in block['transactions']])
         leftTx = []
         for tx in self.txpool:
             if tx["txid"] in leftTxids:
