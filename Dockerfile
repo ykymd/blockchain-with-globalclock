@@ -1,12 +1,11 @@
-FROM tiangolo/uwsgi-nginx-flask:python3.6
+FROM python:3.6-alpine
 
 ARG projectDir=/app/
+WORKDIR ${projectDir}
 
 ADD requirements.txt ${projectDir}
 RUN pip install -r requirements.txt
 
 ADD *.py ${projectDir}
 
-WORKDIR ${projectDir}
-
-EXPOSE 80
+EXPOSE 5000

@@ -17,6 +17,7 @@ print(f"myip: {cbcast.myip}")
 
 @app.route('/', methods=['GET'])
 def hello():
+    print("TESTTESTTEST")
     return jsonify({}), 200
 
 
@@ -71,13 +72,12 @@ def _newTransaction(values):
 
 
 def createTransaction(values):
-    required = ['sender', 'recipient', 'amount']
+    required = ['recipient', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
-    if "txid" not in values:
-        values["txid"] = str(uuid4()).replace('-', '')
-    index = blockchain.newTransaction(
-        values["txid"], values['sender'], values['recipient'], values['amount'])
+    sender = values.get("sender", nodeId)
+    txid = values.get("txid", str(uuid4()).replace('-', ''))
+    index = blockchain.newTransaction(txid, sender, values['recipient'], values['amount'])
     if index is None:
         response = {'message': f'Transaction was already added'}
     else:
