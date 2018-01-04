@@ -15,11 +15,12 @@ class Blockchain(object):
         self.newBlock(previousHash=1, proof=100, time=0)
 
     def newBlock(self, proof: int, previousHash: str = None, time: float = time()) -> dict:
+        txs = [t for t in self.txpool if self.validTx(t)]
         # 新しいブロックを生成して追加
         block = {
             'index': len(self.chain) + 1,
             'timestamp': time,
-            'transactions': self.txpool,
+            'transactions': txs,
             'proof': proof,
             'previousHash': previousHash or self.hash(self.chain[-1]),
         }
@@ -55,6 +56,17 @@ class Blockchain(object):
             })
             return self.lastBlock['index'] + 1
 
+    def getBalance(self, nodeId):
+        balance = 0
+        for block in self.chain:
+            for tx in block['transactions']:
+                print(tx['recipient'])
+                if tx['recipient'] == nodeId:
+                    balance += int(tx['amount'])
+                elif tx['sender'] == nodeId:
+                    balance -= int(tx['amount'])
+        return balance
+
     @staticmethod
     def hash(block: dict) -> str:
         blockString = json.dumps(block, sort_keys=True).encode()
@@ -75,6 +87,20 @@ class Blockchain(object):
         guess = f'{lastProof}{proof}'.encode()
         guessHash = hashlib.sha256(guess).hexdigest()
         return guessHash[:4] == "0000"
+
+    def validTx(self, tx: dict) -> bool:
+        required = ['txid', 'sender', 'recipient', 'amount']
+        if not all(k in tx for k in required):
+            print("INVALID: missing value")
+            return False
+        if not isinstance(tx['amount'], int):
+            print("INVALID: type error")
+            return False
+        senderBalance = int(self.getBalance(tx['sender']))
+        if senderBalance < int(tx['amount']) and tx['sender'] != '0':
+            print("INVALID: insufficient funds")
+            return False
+        return True
 
     def registerNode(self, address: str):
         parsedUrl = urlparse(address)

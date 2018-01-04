@@ -17,8 +17,14 @@ print(f"myip: {cbcast.myip}")
 
 @app.route('/', methods=['GET'])
 def hello():
-    print("TESTTESTTEST")
+    print("HELLO")
     return jsonify({}), 200
+
+
+@app.route('/balance', methods=['GET'])
+def balance():
+    balance = blockchain.getBalance(nodeId)
+    return jsonify({"balance": balance}), 200
 
 
 @app.route('/mine', methods=['GET'])
@@ -77,7 +83,9 @@ def createTransaction(values):
         return 'Missing values', 400
     sender = values.get("sender", nodeId)
     txid = values.get("txid", str(uuid4()).replace('-', ''))
-    index = blockchain.newTransaction(txid, sender, values['recipient'], values['amount'])
+    recipient = values['recipient']
+    amount = values['amount']
+    index = blockchain.newTransaction(txid, sender, recipient, amount)
     if index is None:
         response = {'message': f'Transaction was already added'}
     else:
