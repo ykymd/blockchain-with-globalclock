@@ -5,14 +5,18 @@ from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
 from cbcast import CBCast
+from network import Network
 
 app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
-cbcast = CBCast(nodeId)
+if False:
+    cast = CBCast(nodeId)
+else:
+    cast = Network(nodeId)
 print(f"nodeId: {nodeId}")
-cbcast.myip = socket.gethostbyname(socket.gethostname())
-print(f"myip: {cbcast.myip}")
+cast.myip = socket.gethostbyname(socket.gethostname())
+print(f"myip: {cast.myip}")
 
 
 @app.route('/', methods=['GET'])
@@ -56,7 +60,7 @@ def mine():
 @app.route('/transaction/new', methods=['POST'])
 def newTransaction():
     values = request.json
-    return cbcast.receive(values, _newTransaction)
+    return _newTransaction(values)
 
 
 @app.route('/transaction/sim/late', methods=['POST'])
@@ -67,7 +71,7 @@ def newTransactionLate():
     del values["txid"]  # 新しいtxなのでtxidを削除
     response = createTransaction(values)
     broadcast("transaction/new", values, -1)
-    cbcast.count[cbcast.myId] += 1
+    cast.count[cast.myId] += 1
     return jsonify(response), 201
 
 
@@ -148,7 +152,7 @@ def getPools():
 @app.route('/nodes/register', methods=['POST'])
 def registerNodes():
     values = request.json
-    return cbcast.receive(values, _registerNode)
+    return cast.receive(values, _registerNode)
 
 
 def _registerNode(values):
@@ -156,15 +160,15 @@ def _registerNode(values):
     if nodes is None:
         return 'Error: Please supply a valid list of nodes', 400
     for node in nodes:
-        if node == f"http://{cbcast.myip}":
+        if node == f"http://{cast.myip}":
             continue
         blockchain.registerNode(node)
     response = {
         'message': 'New nodes have been added',
         'totalNodes': list(blockchain.nodes),
     }
-    print(f"myip: {cbcast.myip}")
-    values["nodes"] = [f"http://{cbcast.myip}"]
+    print(f"myip: {cast.myip}")
+    values["nodes"] = [f"http://{cast.myip}"]
     broadcast("nodes/register", values)
     return jsonify(response), 201
 
@@ -186,7 +190,7 @@ def consensus():
 
 
 def broadcast(func, values, additional=1):
-    cbcast.broadcast(func, values, blockchain.nodes, additional)
+    cast.broadcast(func, values, blockchain.nodes, additional)
 
 
 if __name__ == '__main__':
@@ -196,5 +200,5 @@ if __name__ == '__main__':
                         type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
-    # cbcast.myip = f"http://127.0.0.1:{port}"
+    #cast.myip = f"http://127.0.0.1:{port}"
     app.run(host='0.0.0.0', port=port, debug=True)
