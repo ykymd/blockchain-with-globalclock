@@ -71,6 +71,27 @@ def newTransactionLate():
     return jsonify(response), 201
 
 
+@app.route('/transaction/sim/ds', methods=['POST'])
+def doubleSpending():
+    values = request.json
+
+    sender = values.get("sender", nodeId)
+    txid = values.get("txid", str(uuid4()).replace('-', ''))
+    recipient = values['recipient']
+    amount = values['amount']
+    index = blockchain.newMaliciousTransaction(txid, sender, recipient, amount)
+
+    # トランザクションをもう一つ作る
+    txid = str(uuid4()).replace('-', '')
+    index = blockchain.newTransaction(txid, sender, recipient, amount)
+    if index is None:
+        response = {'message': f'Transaction was already added'}
+    else:
+        print(f'Transaction will be added to Block {index}')
+        response = {'message': f'Transaction will be added to Block {index}'}
+    return jsonify(response), 201
+
+
 def _newTransaction(values):
     response = createTransaction(values)
     broadcast("transaction/new", values)

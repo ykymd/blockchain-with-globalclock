@@ -15,6 +15,7 @@ class Blockchain(object):
         self.newBlock(previousHash=1, proof=100, time=0)
 
     def newBlock(self, proof: int, previousHash: str = None, time: float = time()) -> dict:
+        self.txpool.sort(key=lambda x: x["timestamp"])
         txs = [t for t in self.txpool if self.validTx(t)]
         # 新しいブロックを生成して追加
         block = {
@@ -53,6 +54,28 @@ class Blockchain(object):
                 'sender': sender,
                 'recipient': recipient,
                 'amount': amount,
+                'timestamp': time()
+            })
+            return self.lastBlock['index'] + 1
+
+    def newMaliciousTransaction(self, txid: str, sender: str, recipient: str, amount: int) -> int:
+        """
+        sender: 送り元のアドレス
+        recipient: 送り先のアドレス
+        return: blockのindex
+        """
+        txidList = [x["txid"] for x in self.txpool]
+        if txid in txidList:
+            return None
+        else:
+            # 意図的に無視されるトランザクション
+            self.txpool.append({
+                'txid': txid,
+                'sender': sender,
+                'recipient': recipient,
+                'amount': amount,
+                'timestamp': time(),
+                'ignore': True
             })
             return self.lastBlock['index'] + 1
 
@@ -100,6 +123,11 @@ class Blockchain(object):
         if senderBalance < int(tx['amount']) and tx['sender'] != '0':
             print("INVALID: insufficient funds")
             return False
+        # シミュレーション用
+        # 意図的に消したいトランザクションを除外する
+        #if tx.get('ignore', False):
+        #    print("INVALID: This is ignored transaction")
+        #    return False
         return True
 
     def registerNode(self, address: str):
