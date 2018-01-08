@@ -8,6 +8,7 @@ class Network(object):
     def __init__(self, myId):
         self.myId = myId
         self.myip = ""
+        self.timeStampSync = True
 
     def objectHash(self, dic):
         return hashlib.md5(str(dic).encode('utf-8')).hexdigest()
@@ -22,9 +23,8 @@ class Network(object):
             self.send(f"http://{node}/{func}", values)
 
     def send(self, url, param={}):
-        param[self.sender_id] = self.myId
         print(f"sender: {param}")
         return requests.post(url, data=json.dumps(param), headers={"content-type": "application/json"})
 
-    def receive(self, param, callback):
+    def receive(self, param, callback, pool):
         return callback(param)

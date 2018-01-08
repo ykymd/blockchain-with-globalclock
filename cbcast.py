@@ -12,6 +12,7 @@ class CBCast(object):
         self.vector_key = "cbcast_vector"
         self.sender_id = "sender_id"
         self.txqueue = []
+        self.timeStampSync = False
 
     def objectHash(self, dic):
         return hashlib.md5(str(dic).encode('utf-8')).hexdigest()

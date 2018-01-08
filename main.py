@@ -10,7 +10,7 @@ from network import Network
 app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
-if False:
+if True:
     cast = CBCast(nodeId)
 else:
     cast = Network(nodeId)
@@ -66,12 +66,17 @@ def newTransaction():
 @app.route('/transaction/sim/late', methods=['POST'])
 def newTransactionLate():
     values = request.json
+    values["order"] = 2  # 補助情報
     createTransaction(values)
     broadcast("transaction/new", values, 2)
-    del values["txid"]  # 新しいtxなのでtxidを削除
+    # del values["txid"]  # 新しいtxなのでtxidを削除
+    values["order"] = 1  # 補助情報
     response = createTransaction(values)
     broadcast("transaction/new", values, -1)
-    cast.count[cast.myId] += 1
+    if hasattr(cast, "count"):
+        cast.count[cast.myId] += 1
+    else:
+        print("no count")
     return jsonify(response), 201
 
 
