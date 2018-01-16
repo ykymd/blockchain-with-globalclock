@@ -4,38 +4,49 @@ import hashlib
 from urllib.parse import urlparse
 import requests
 import random
+from tinydb import TinyDB, Query
+
+query = Query()
 
 
 class Blockchain(object):
     def __init__(self):
-        self.chain = []
-        self.txpool = []
-        self.nodes = set()
+        self.db = TinyDB("db.json")
+        self.db.purge_tables()
+        self.chain = self.db.table("chain")
+        self.pool = self.db.table("pool")
+        self.node = self.db.table("node")
+        # self.chain = []
+        # self.txpool = []
+        # self.nodes = set()
         # genesis blockを生成(全て固定値とする)
         self.newBlock(previousHash=1, proof=100, time=0)
 
     def newBlock(self, proof: int, previousHash: str = None, time: float = time()) -> dict:
-        self.txpool.sort(key=lambda x: x["timestamp"])
-        txs = [t for t in self.txpool if self.validTx(t)]
+        txpool = self.pool.all()
+        txpool.sort(key=lambda x: x["timestamp"])
+        txs = [t for t in txpool if self.validTx(t)]
+        chain = self.chain.all()
         # 新しいブロックを生成して追加
         block = {
-            'index': len(self.chain) + 1,
+            'index': len(chain) + 1,
             'timestamp': time,
             'transactions': txs,
             'proof': proof,
-            'previousHash': previousHash or self.hash(self.chain[-1]),
+            'previousHash': previousHash or self.hash(chain[-1]),
         }
         return self.addBlock(block)
 
     def addBlock(self, block):
-        leftTxids = set([x["txid"] for x in self.txpool]) - \
-            set([x["txid"] for x in block['transactions']])
-        leftTx = []
-        for tx in self.txpool:
-            if tx["txid"] in leftTxids:
-                leftTx.append(tx)
-        self.txpool = leftTx
-        self.chain.append(block)
+        #leftTxids = set([x["txid"] for x in txpool]) - \
+        #    set([x["txid"] for x in block['transactions']])
+        for removeTxid in set([x["txid"] for x in block['transactions']]):
+            self.pool.remove(query.txid == removeTxid)
+        #leftTx = []
+        #for tx in txpool:
+        #    if tx["txid"] in leftTxids:
+        #        leftTx.append(tx)
+        self.chain.insert(block)
         return block
 
     def newTransaction(self, txid: str, sender: str, recipient: str, amount: int) -> int:
@@ -45,8 +56,10 @@ class Blockchain(object):
         return: blockのindex
         """
         # 重複しないかチェックする
-        txidList = [x["txid"] for x in self.txpool]
-        if txid in txidList:
+        # txidList = [x["txid"] for x in self.txpool]
+        txidList = self.pool.search(query.txid == txid)
+        # if txid in txidList:
+        if len(txidList) == 0:
             return None
         else:
             self.txpool.append({
