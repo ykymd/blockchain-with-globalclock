@@ -4,9 +4,9 @@ services:
   bc:
     build: .
     ports:
-      - 5000
-    # - 80
-    command: python -u main.py
+      - 80
+    #  - 5000
+    #command: python -u main.py
     networks:
       - blockchain
 networks:

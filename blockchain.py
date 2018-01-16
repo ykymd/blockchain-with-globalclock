@@ -15,7 +15,7 @@ class Blockchain(object):
         self.db.purge_tables()
         self.chain = self.db.table("chain")
         self.pool = self.db.table("pool")
-        self.node = self.db.table("node")
+        self.nodes = self.db.table("node")
         # self.chain = []
         # self.txpool = []
         # self.nodes = set()
@@ -59,10 +59,10 @@ class Blockchain(object):
         # txidList = [x["txid"] for x in self.txpool]
         txidList = self.pool.search(query.txid == txid)
         # if txid in txidList:
-        if len(txidList) == 0:
+        if len(txidList) > 0:
             return None
         else:
-            self.txpool.append({
+            self.pool.insert({
                 'txid': txid,
                 'sender': sender,
                 'recipient': recipient,
@@ -110,7 +110,8 @@ class Blockchain(object):
 
     @property
     def lastBlock(self):
-        return self.chain[-1]
+        chain = self.chain.all()
+        return chain[-1]
 
     def proofOfWork(self, lastProof: int) -> int:
         proof = random.randint(0, 1000000)
@@ -145,7 +146,7 @@ class Blockchain(object):
 
     def registerNode(self, address: str):
         parsedUrl = urlparse(address)
-        self.nodes.add(parsedUrl.netloc)
+        self.nodes.insert({"url": parsedUrl.netloc})
 
     def validChain(self, chain: list) -> bool:
         lastBlock = chain[0]
@@ -165,11 +166,13 @@ class Blockchain(object):
         return True
 
     def resolveConflicts(self) -> bool:
-        bestChain = self.chain
-        maxLength = len(self.chain)
+        chain = self.chain.all()
+        bestChain = chain
+        maxLength = len(chain)
         replaced = False
         for node in self.nodes:
-            response = requests.get(f'http://{node}/chain')
+            url = node["url"]
+            response = requests.get(f'http://{url}/chain')
             if response.status_code == 200:
                 peerLength = response.json()['length']
                 peerChain = response.json()['chain']
@@ -184,7 +187,9 @@ class Blockchain(object):
                 elif peerLength == maxLength and self.validBetterChain(peerChain, bestChain):
                     bestChain = peerChain
                     replaced = True
-        self.chain = bestChain
+        self.chain.purge_table()
+        self.chain = self.db.chain("chain")
+        self.chain.insert(bestChain)
         return replaced
 
     @staticmethod

@@ -18,13 +18,14 @@ class CBCast(object):
         return hashlib.md5(str(dic).encode('utf-8')).hexdigest()
 
     def broadcast(self, func, values, nodes, additional=1):
+        nodeList = [x["url"] for x in nodes]
         received = set(values.get("received", []))
         received.add(self.myip)
         values["received"] = list(received)
         self.count[self.myId] += additional
         print(f"received: {list(received)}")
         # print(f"countupdated: {self.count[self.myId]}")
-        for node in nodes - received:
+        for node in set(nodeList) - received:
             self.send(f"http://{node}/{func}", values)
 
     def send(self, url, param={}):

@@ -132,8 +132,8 @@ def getId():
 @app.route('/chain/', methods=['GET'])
 def fullChain():
     response = {
-        'chain': blockchain.chain,
-        'length': len(blockchain.chain),
+        'chain': blockchain.chain.all(),
+        'length': len(blockchain.chain.all()),
     }
     return jsonify(response), 200
 
@@ -141,7 +141,7 @@ def fullChain():
 @app.route('/nodes/', methods=['GET'])
 def getNodes():
     response = {
-        "nodes": list(blockchain.nodes)
+        "nodes": list(blockchain.nodes.all())
     }
     return jsonify(response), 200
 
@@ -149,7 +149,7 @@ def getNodes():
 @app.route('/pool/', methods=['GET'])
 def getPools():
     response = {
-        "tx": list(blockchain.txpool)
+        "tx": list(blockchain.pool.all())
     }
     return jsonify(response), 200
 
@@ -170,7 +170,7 @@ def _registerNode(values):
         blockchain.registerNode(node)
     response = {
         'message': 'New nodes have been added',
-        'totalNodes': list(blockchain.nodes),
+        'totalNodes': list(blockchain.nodes.all()),
     }
     print(f"myip: {cast.myip}")
     values["nodes"] = [f"http://{cast.myip}"]
@@ -184,18 +184,18 @@ def consensus():
     if replaced:
         response = {
             'message': 'Our chain was replaced',
-            'newChain': blockchain.chain
+            'newChain': blockchain.chain.all()
         }
     else:
         response = {
             'message': 'Our chain is authoritative',
-            'chain': blockchain.chain
+            'chain': blockchain.chain.all()
         }
     return jsonify(response), 200
 
 
 def broadcast(func, values, additional=1):
-    cast.broadcast(func, values, blockchain.nodes, additional)
+    cast.broadcast(func, values, blockchain.nodes.all(), additional)
 
 
 if __name__ == '__main__':

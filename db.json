@@ -1,0 +1,21 @@
+{
+    "chain": {
+        "1": {
+            "index": 1,
+            "timestamp": 0,
+            "transactions": [],
+            "proof": 100,
+            "previousHash": 1
+        }
+    },
+    "pool": {
+        "1": {
+            "txid": "e9c8f5a1153d4908be4ef4d276ab90ae",
+            "sender": "0e985e707ba14443851a98e390eb9236",
+            "recipient": "053263f820054c2c8b3cec23c40a73a3",
+            "amount": 5,
+            "timestamp": 1516086168.829488
+        }
+    },
+    "node": {}
+}
