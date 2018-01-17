@@ -1,6 +1,9 @@
+import json
 import socket
+import sys
 from uuid import uuid4
 
+import requests
 from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
@@ -205,5 +208,5 @@ if __name__ == '__main__':
                         type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
-    #cast.myip = f"http://127.0.0.1:{port}"
+    # cast.myip = f"http://127.0.0.1:{port}"
     app.run(host='0.0.0.0', port=port, debug=True)
