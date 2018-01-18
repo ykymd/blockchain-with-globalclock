@@ -9,7 +9,7 @@ targetId = args[2] if len(args) > 2 else 3
 param = {
     "nodes": [f"http://172.19.0.{regId}"]
 }
-url = f"http://172.19.0.{targetId}"
+url = f"http://172.19.0.{targetId}/nodes/register"
 print("try: ", url)
 try:
     requests.post(url, data=json.dumps(param), headers={"content-type": "application/json"})
