@@ -4,12 +4,12 @@ import sys
 
 args = sys.argv
 # ノードに接続する
-regId = args[1] if len(args) > 2 else 2
-targetId = args[2] if len(args) > 2 else 3
+regId = args[1] if len(args) > 1 else "http://172.19.0.2"
+targetId = args[2] if len(args) > 2 else "http://172.19.0.3"
 param = {
-    "nodes": [f"http://172.19.0.{regId}"]
+    "nodes": [regId]
 }
-url = f"http://172.19.0.{targetId}/nodes/register"
+url = f"{targetId}/nodes/register"
 print("try: ", url)
 try:
     requests.post(url, data=json.dumps(param), headers={"content-type": "application/json"})

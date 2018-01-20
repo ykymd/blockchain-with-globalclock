@@ -29,7 +29,7 @@ class Blockchain(object):
         chain = self.chain.all()
         # 新しいブロックを生成して追加
         block = {
-            'index': len(chain) + 1,
+            'index': int(chain[-1]['index']) + 1 if len(chain) > 0 else 1,
             'timestamp': time,
             'transactions': txs,
             'proof': proof,
@@ -46,7 +46,21 @@ class Blockchain(object):
         #for tx in txpool:
         #    if tx["txid"] in leftTxids:
         #        leftTx.append(tx)
-        self.chain.insert(block)
+        chain = self.chain.all()
+        if len(chain) > 0:
+            lastBlock = chain[-1]
+            #print(f'{lastBlock}')
+            #print(f'{block}')
+            #print("\n---------\n")
+            if block['previousHash'] != self.hash(lastBlock):
+                return None
+            if not self.validProof(lastBlock['proof'], block['proof']):
+                return None
+        #print(f"{self.chain.all()}")
+        #print(f"add block{block['index']}")
+        docId = self.chain.insert(block)
+        #print(f"document ID: {docId}")
+        #print(f"{self.chain.all()}")
         return block
 
     def newTransaction(self, txid: str, sender: str, recipient: str, amount: int) -> int:
@@ -176,20 +190,26 @@ class Blockchain(object):
             if response.status_code == 200:
                 peerLength = response.json()['length']
                 peerChain = response.json()['chain']
+                peerChain = sorted(peerChain, key=lambda x: x['index'])
                 if not self.validChain(peerChain):
+                    print("no valid chain")
                     continue
                 # 最も長いチェーンを最良のチェーンとする
                 if peerLength > maxLength:
+                    print("their chain is better")
                     maxLength = peerLength
                     bestChain = peerChain
                     replaced = True
                 # 長さが同じ場合それぞれのチェーンを比べる
                 elif peerLength == maxLength and self.validBetterChain(peerChain, bestChain):
+                    print("their chain is better: same length")
                     bestChain = peerChain
                     replaced = True
-        self.chain.purge_table()
-        self.chain = self.db.chain("chain")
-        self.chain.insert(bestChain)
+        if replaced:
+            self.db.purge_table("chain")
+            self.chain = self.db.table("chain")
+            self.chain.insert_multiple(bestChain)
+        #print(f"updated chain: {self.chain.all()}")
         return replaced
 
     @staticmethod
