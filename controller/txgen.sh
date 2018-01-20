@@ -5,7 +5,15 @@ docker run --network myblockchain_blockchain controller curl -sL -X POST \
   -H 'Content-Type: application/json' \
   -d '{
     "recipient": "053263f820054c2c8b3cec23c40a73a3",
-    "amount": 5
-  }'
-sleep 0.1
+    "amount": 10
+  }' &
+sleep 1
+docker run --network myblockchain_blockchain controller curl -sL -X POST \
+  http://myblockchain_bc_2/transaction/new \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "recipient": "053263f820054c2c8b3cec23c40a73a3",
+    "amount": 20
+  }' &
+sleep 1
 done

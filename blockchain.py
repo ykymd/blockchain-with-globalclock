@@ -160,7 +160,10 @@ class Blockchain(object):
 
     def registerNode(self, address: str):
         parsedUrl = urlparse(address)
-        self.nodes.insert({"url": parsedUrl.netloc})
+        url = parsedUrl.netloc
+        allnodes = [i["url"] for i in self.nodes.all()]
+        if url not in allnodes:
+            self.nodes.insert({"url": url})
 
     def validChain(self, chain: list) -> bool:
         lastBlock = chain[0]
@@ -215,7 +218,6 @@ class Blockchain(object):
     @staticmethod
     def validBetterChain(target: list, comparison: list) -> bool:
         # proofの合計値が少ない方が最良のチェーンとする（できれば確率の低い方にしたい）
-        # TODO: グローバルクロック化
         proofSumT = sum(list(map(lambda a: a["proof"], target)))
         proofSumC = sum(list(map(lambda a: a["proof"], comparison)))
         print(f'target: {proofSumT}')
