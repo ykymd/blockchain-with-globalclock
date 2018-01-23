@@ -1,4 +1,5 @@
 import socket
+from time import time
 from uuid import uuid4
 
 from flask import Flask, jsonify, request
@@ -105,7 +106,8 @@ def doubleSpending():
 
 
 def _newTransaction(values):
-    response = createTransaction(values)
+    response, txid = createTransaction(values)
+    values["txid"] = txid
     broadcast("transaction/new", values)
     return jsonify(response), 201
 
@@ -122,9 +124,15 @@ def createTransaction(values):
     if index is None:
         response = {'message': f'Transaction was already added'}
     else:
-        print(f'Transaction will be added to Block {index}')
-        response = {'message': f'Transaction will be added to Block {index}'}
-    return response
+        count = blockchain.pool.find().count()
+        timestamp = time()
+        print(f'[{timestamp}]Tx will be added to Block {index}, count: {count}')
+        response = {
+            'message': f'Transaction will be added to Block {index}',
+            "timestamp": timestamp,
+            "count": count
+        }
+    return response, txid
 
 
 @app.route('/id', methods=['GET'])
