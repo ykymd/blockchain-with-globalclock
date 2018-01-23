@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from blockchain import Blockchain
 from cbcast import CBCast
 from network import Network
+from vector import Vector
 
 app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
@@ -18,7 +19,7 @@ isCausalMulticast = True
 if isLogicalGlobalClock and isCausalMulticast:
     cast = CBCast(nodeId)
 elif isLogicalGlobalClock:
-    cast = CBCast(nodeId)  # ベクタークロックにする
+    cast = Vector(nodeId)  # ベクタークロックにする
 else:
     cast = Network(nodeId)
 print(f"nodeId: {nodeId}")
