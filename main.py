@@ -171,6 +171,7 @@ def getPools():
 @app.route('/nodes/register', methods=['POST'])
 def registerNodes():
     values = request.json
+    #return cast.receive(values, _registerNode)
     return _registerNode(values)
 
 
