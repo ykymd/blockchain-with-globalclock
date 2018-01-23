@@ -1,9 +1,6 @@
-import json
 import socket
-import sys
 from uuid import uuid4
 
-import requests
 from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
@@ -13,7 +10,9 @@ from network import Network
 app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
-if True:
+
+isLogicalGlobalClock = False
+if isLogicalGlobalClock:
     cast = CBCast(nodeId)
 else:
     cast = Network(nodeId)
@@ -57,6 +56,7 @@ def mine():
         'previousHash': block['previousHash'],
     }
     broadcast("nodes/resolve", {})
+    print(response)
     return jsonify(response), 200
 
 
@@ -135,8 +135,8 @@ def getId():
 @app.route('/chain/', methods=['GET'])
 def fullChain():
     response = {
-        'chain': blockchain.chain.all(),
-        'length': len(blockchain.chain.all()),
+        'chain': list(blockchain.chain.find({}, {'_id': 0})),
+        'length': blockchain.chain.count(),
     }
     return jsonify(response), 200
 
@@ -144,7 +144,7 @@ def fullChain():
 @app.route('/nodes/', methods=['GET'])
 def getNodes():
     response = {
-        "nodes": list(blockchain.nodes.all())
+        "nodes": list(blockchain.nodes.find({}, {'_id': 0}))
     }
     return jsonify(response), 200
 
@@ -152,7 +152,7 @@ def getNodes():
 @app.route('/pool/', methods=['GET'])
 def getPools():
     response = {
-        "tx": list(blockchain.pool.all())
+        "tx": list(blockchain.pool.find({}, {'_id': 0}))
     }
     return jsonify(response), 200
 
@@ -173,7 +173,7 @@ def _registerNode(values):
         blockchain.registerNode(node)
     response = {
         'message': 'New nodes have been added',
-        'totalNodes': list(blockchain.nodes.all()),
+        'totalNodes': list(blockchain.nodes.find({}, {'_id': 0})),
     }
     print(f"myip: {cast.myip}")
     values["nodes"] = [f"http://{cast.myip}"]
@@ -187,18 +187,19 @@ def consensus():
     if replaced:
         response = {
             'message': 'Our chain was replaced',
-            'newChain': blockchain.chain.all()
+            'newChain': list(blockchain.chain.find({}, {'_id': 0}))
         }
     else:
         response = {
             'message': 'Our chain is authoritative',
-            'chain': blockchain.chain.all()
+            'chain': list(blockchain.chain.find({}, {'_id': 0}))
         }
     return jsonify(response), 200
 
 
 def broadcast(func, values, additional=1):
-    cast.broadcast(func, values, blockchain.nodes.all(), additional)
+    cast.broadcast(func, values, list(
+        blockchain.nodes.find({}, {'_id': 0})), additional)
 
 
 if __name__ == '__main__':

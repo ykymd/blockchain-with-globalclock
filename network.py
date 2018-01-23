@@ -18,13 +18,14 @@ class Network(object):
         received.add(self.myip)
         values["received"] = list(received)
         print(f"received: {list(received)}")
+        nodeset = set([i["url"] for i in nodes])
         # print(f"countupdated: {self.count[self.myId]}")
-        for node in nodes - received:
+        for node in nodeset - received:
             self.send(f"http://{node}/{func}", values)
 
     def send(self, url, param={}):
         print(f"sender: {param}")
         return requests.post(url, data=json.dumps(param), headers={"content-type": "application/json"})
 
-    def receive(self, param, callback, pool):
+    def receive(self, param, callback):
         return callback(param)

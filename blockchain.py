@@ -4,18 +4,20 @@ import hashlib
 from urllib.parse import urlparse
 import requests
 import random
-from tinydb import TinyDB, Query
+from pymongo import MongoClient
 
-query = Query()
+mongoClient = MongoClient('localhost', 27017)
+db = mongoClient.gc_blockchain
 
 
 class Blockchain(object):
     def __init__(self):
-        self.db = TinyDB("db.json")
-        self.db.purge_tables()
-        self.chain = self.db.table("chain")
-        self.pool = self.db.table("pool")
-        self.nodes = self.db.table("node")
+        self.chain = db.chain
+        self.pool = db.pool
+        self.nodes = db.node
+        self.chain.remove()
+        self.pool.remove()
+        self.nodes.remove()
         # self.chain = []
         # self.txpool = []
         # self.nodes = set()
@@ -23,17 +25,15 @@ class Blockchain(object):
         self.newBlock(previousHash=1, proof=100, time=0)
 
     def newBlock(self, proof: int, previousHash: str = None, time: float = time()) -> dict:
-        txpool = self.pool.all()
-        txpool.sort(key=lambda x: x["timestamp"])
+        txpool = self.pool.find({}, {'_id': 0}).sort([("timestamp", 1)]) if self.pool.count() > 0 else {}
         txs = [t for t in txpool if self.validTx(t)]
-        chain = self.chain.all()
         # 新しいブロックを生成して追加
         block = {
-            'index': int(chain[-1]['index']) + 1 if len(chain) > 0 else 1,
+            'index': int(self.lastBlock['index']) + 1,
             'timestamp': time,
             'transactions': txs,
             'proof': proof,
-            'previousHash': previousHash or self.hash(chain[-1]),
+            'previousHash': previousHash or self.hash(self.lastBlock),
         }
         return self.addBlock(block)
 
@@ -41,14 +41,14 @@ class Blockchain(object):
         #leftTxids = set([x["txid"] for x in txpool]) - \
         #    set([x["txid"] for x in block['transactions']])
         for removeTxid in set([x["txid"] for x in block['transactions']]):
-            self.pool.remove(query.txid == removeTxid)
+            self.pool.remove({"txid": removeTxid})
         #leftTx = []
         #for tx in txpool:
         #    if tx["txid"] in leftTxids:
         #        leftTx.append(tx)
-        chain = self.chain.all()
-        if len(chain) > 0:
-            lastBlock = chain[-1]
+        length = self.chain.find().count()
+        if length > 0:
+            lastBlock = self.lastBlock
             #print(f'{lastBlock}')
             #print(f'{block}')
             #print("\n---------\n")
@@ -58,7 +58,7 @@ class Blockchain(object):
                 return None
         #print(f"{self.chain.all()}")
         #print(f"add block{block['index']}")
-        docId = self.chain.insert(block)
+        self.chain.insert(block)
         #print(f"document ID: {docId}")
         #print(f"{self.chain.all()}")
         return block
@@ -71,9 +71,9 @@ class Blockchain(object):
         """
         # 重複しないかチェックする
         # txidList = [x["txid"] for x in self.txpool]
-        txidList = self.pool.search(query.txid == txid)
+        txidList = self.pool.find({"txid": txid})
         # if txid in txidList:
-        if len(txidList) > 0:
+        if txidList.count() > 0:
             return None
         else:
             self.pool.insert({
@@ -91,7 +91,7 @@ class Blockchain(object):
         recipient: 送り先のアドレス
         return: blockのindex
         """
-        txidList = [x["txid"] for x in self.txpool]
+        txidList = [x["txid"] for x in self.txpool.find({}, {'_id': 0})]
         if txid in txidList:
             return None
         else:
@@ -108,7 +108,7 @@ class Blockchain(object):
 
     def getBalance(self, nodeId):
         balance = 0
-        for block in self.chain:
+        for block in self.chain.find():
             for tx in block['transactions']:
                 print(tx['recipient'])
                 if tx['recipient'] == nodeId:
@@ -124,8 +124,9 @@ class Blockchain(object):
 
     @property
     def lastBlock(self):
-        chain = self.chain.all()
-        return chain[-1]
+        if self.chain.count() <= 0:
+            return {'index': 0, 'proof': 100}
+        return self.chain.find({}, {'_id': 0}).sort([('index', -1)]).limit(1)[0]
 
     def proofOfWork(self, lastProof: int) -> int:
         proof = random.randint(0, 1000000)
@@ -161,7 +162,7 @@ class Blockchain(object):
     def registerNode(self, address: str):
         parsedUrl = urlparse(address)
         url = parsedUrl.netloc
-        allnodes = [i["url"] for i in self.nodes.all()]
+        allnodes = [i["url"] for i in self.nodes.find()]
         if url not in allnodes:
             self.nodes.insert({"url": url})
 
@@ -183,11 +184,10 @@ class Blockchain(object):
         return True
 
     def resolveConflicts(self) -> bool:
-        chain = self.chain.all()
-        bestChain = chain
-        maxLength = len(chain)
+        bestChain = self.chain.find()
+        maxLength = self.chain.count()
         replaced = False
-        for node in self.nodes:
+        for node in self.nodes.find():
             url = node["url"]
             response = requests.get(f'http://{url}/chain')
             if response.status_code == 200:
@@ -209,9 +209,14 @@ class Blockchain(object):
                     bestChain = peerChain
                     replaced = True
         if replaced:
-            self.db.purge_table("chain")
-            self.chain = self.db.table("chain")
-            self.chain.insert_multiple(bestChain)
+            #self.db.purge_table("chain")
+            #self.chain = self.db.table("chain")
+            #self.chain.insert_multiple(bestChain)
+            for block in bestChain:
+                if self.chain.find({"index": block['index']}).count() > 0:
+                    self.chain.update({"index": block['index']}, block)
+                else:
+                    self.chain.insert(block)
         #print(f"updated chain: {self.chain.all()}")
         return replaced
 
