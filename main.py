@@ -64,7 +64,10 @@ def mine():
 @app.route('/transaction/new', methods=['POST'])
 def newTransaction():
     values = request.json
-    return _newTransaction(values)
+    if isLogicalGlobalClock:
+        return cast.receive(values, _newTransaction)
+    else:
+        return _newTransaction(values)
 
 
 @app.route('/transaction/sim/late', methods=['POST'])
