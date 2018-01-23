@@ -160,10 +160,13 @@ class Blockchain(object):
         return True
 
     def registerNode(self, address: str):
+        if "http://" not in address:
+            address = f"http://{address}"
         parsedUrl = urlparse(address)
         url = parsedUrl.netloc
         allnodes = [i["url"] for i in self.nodes.find()]
         if url not in allnodes:
+            print(f"insert: {url}")
             self.nodes.insert({"url": url})
 
     def validChain(self, chain: list) -> bool:

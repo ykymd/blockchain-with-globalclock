@@ -3,6 +3,7 @@ from time import time
 from uuid import uuid4
 
 from flask import Flask, jsonify, request
+from urllib.parse import urlparse
 
 from blockchain import Blockchain
 from cbcast import CBCast
@@ -13,8 +14,11 @@ nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
 isLogicalGlobalClock = True
-if isLogicalGlobalClock:
+isCausalMulticast = True
+if isLogicalGlobalClock and isCausalMulticast:
     cast = CBCast(nodeId)
+elif isLogicalGlobalClock:
+    cast = CBCast(nodeId)  # ベクタークロックにする
 else:
     cast = Network(nodeId)
 print(f"nodeId: {nodeId}")
@@ -111,7 +115,13 @@ def doubleSpending():
 def _newTransaction(values):
     response, txid = createTransaction(values)
     values["txid"] = txid
-    broadcast("transaction/new", values)
+    response["txid"] = txid
+    enableGossip = values.get("gossip", True)
+    if isCausalMulticast:
+        # 1回目で止める
+        values["gossip"] = False
+    if enableGossip:
+        broadcast("transaction/new", values)
     return jsonify(response), 201
 
 
@@ -133,7 +143,8 @@ def createTransaction(values):
         response = {
             'message': f'Transaction will be added to Block {index}',
             "timestamp": timestamp,
-            "count": count
+            "count": count,
+            "ip": cast.myip
         }
     return response, txid
 
@@ -171,25 +182,43 @@ def getPools():
 @app.route('/nodes/register', methods=['POST'])
 def registerNodes():
     values = request.json
-    #return cast.receive(values, _registerNode)
-    return _registerNode(values)
+    print(values)
+    return cast.receive(values, _registerNode)
 
 
-def _registerNode(values):
+@app.route('/nodes/register/all', methods=['POST'])
+def registerNodesAll():
+    values = request.json
+    num = values["num"]
+    values["nodes"] = []
+    for i in range(1, num+1):
+        values["nodes"].append(f"http://myblockchain_bc_{i}")
+    print(values)
+    return _registerNode(values, False)
+
+
+def _registerNode(values, enableGossip=True):
     nodes = values.get('nodes')
     if nodes is None:
         return 'Error: Please supply a valid list of nodes', 400
     for node in nodes:
-        if node == f"http://{cast.myip}":
+        print(node)
+        if "http://" in node:
+            ip = socket.gethostbyname(urlparse(node).netloc)
+        else:
+            # ipアドレスに変換する
+            ip = socket.gethostbyname(node)
+        if ip == f"{cast.myip}":
             continue
-        blockchain.registerNode(node)
+        blockchain.registerNode(ip)
     response = {
         'message': 'New nodes have been added',
         'totalNodes': list(blockchain.nodes.find({}, {'_id': 0})),
     }
     print(f"myip: {cast.myip}")
     values["nodes"] = [f"http://{cast.myip}"]
-    broadcast("nodes/register", values)
+    if enableGossip:
+        broadcast("nodes/register", values)
     return jsonify(response), 201
 
 
@@ -210,8 +239,7 @@ def consensus():
 
 
 def broadcast(func, values, additional=1):
-    cast.broadcast(func, values, list(
-        blockchain.nodes.find({}, {'_id': 0})), additional)
+    cast.broadcast(func, values, list(blockchain.nodes.find({}, {'_id': 0})), additional)
 
 
 if __name__ == '__main__':

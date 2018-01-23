@@ -28,14 +28,18 @@ class CBCast(object):
         received = set(values.get("received", []))
         received.add(self.myip)
         values["received"] = list(received)
-        self.count.update({"id": self.myId}, {"$inc": {"count": additional}})
         print(f"received: {list(received)}")
         # print(f"countupdated: {self.count[self.myId]}")
         for node in set(nodeList) - received:
+            print(f"try: http://{node}/{func}")
             self.send(f"http://{node}/{func}", values)
+        self.count.update({"id": self.myId}, {"$inc": {"count": additional}})  # 全て送信完了後に可算する
 
     def send(self, url, param={}):
         param[self.vector_key] = list(self.count.find({}, {'_id': 0}))
+        for i in param[self.vector_key]:
+            if i.get("id", "") == self.myId:
+                i['count'] += 1
         param[self.sender_id] = self.myId
         print(f"sender: {param}")
         return requests.post(url, data=json.dumps(param), headers={"content-type": "application/json"})
@@ -43,6 +47,7 @@ class CBCast(object):
     def receive(self, param, callback):
         sender_id = param.get(self.sender_id, None)
         if sender_id is None:
+            print("sender_id is None")
             return callback(param)
         if callback != "dummy":
             self.callback = callback

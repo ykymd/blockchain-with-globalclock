@@ -9,20 +9,12 @@ services:
     #command: python -u main.py
     networks:
       - blockchain
-  miner:
-    build: .
-    ports:
-      - 80
-    #  - 5000
-    #command: python -u main.py
-    networks:
-      - blockchain
-  #linker:
-  #  build: controller
+  #miner:
+  #  build: .
   #  ports:
   #    - 80
   #  #  - 5000
-  #  command: python minelinker.py
+  #  #command: python -u main.py
   #  networks:
   #    - blockchain
 networks:
