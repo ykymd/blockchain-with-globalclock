@@ -12,7 +12,7 @@ app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
-isLogicalGlobalClock = False
+isLogicalGlobalClock = True
 if isLogicalGlobalClock:
     cast = CBCast(nodeId)
 else:
