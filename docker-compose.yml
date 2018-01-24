@@ -3,9 +3,8 @@ version: '3'
 services:
   bc:
     build: .
-    ports:
-      - 80
-    #  - 5000
+    #ports:
+    #  - 80
     #command: python -u main.py
     networks:
       - blockchain
