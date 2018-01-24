@@ -15,7 +15,7 @@ nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
 isLogicalGlobalClock = True
-isCausalMulticast = True
+isCausalMulticast = False
 if isLogicalGlobalClock and isCausalMulticast:
     cast = CBCast(nodeId)
 elif isLogicalGlobalClock:
