@@ -14,7 +14,7 @@ app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
-isLogicalGlobalClock = True 
+isLogicalGlobalClock = False 
 isCausalMulticast = False
 if isLogicalGlobalClock and isCausalMulticast:
     cast = CBCast(nodeId)
