@@ -24,7 +24,7 @@ class Blockchain(object):
         # genesis blockを生成(全て固定値とする)
         self.newBlock(previousHash=1, proof=100, time=0)
 
-    def newBlock(self, proof: int, previousHash: str = None, time: float = time()) -> dict:
+    def newBlock(self, proof: int, previousHash: str = None, time: float = 0) -> dict:
         txpool = self.pool.find({}, {'_id': 0}).sort([("timestamp", 1)]) if self.pool.count() > 0 else {}
         txs = [t for t in txpool if self.validTx(t)]
         # 新しいブロックを生成して追加
@@ -63,7 +63,7 @@ class Blockchain(object):
         #print(f"{self.chain.all()}")
         return block
 
-    def newTransaction(self, txid: str, sender: str, recipient: str, amount: int) -> int:
+    def newTransaction(self, txid: str, sender: str, recipient: str, amount: int, time) -> int:
         """
         sender: 送り元のアドレス
         recipient: 送り先のアドレス
@@ -81,11 +81,11 @@ class Blockchain(object):
                 'sender': sender,
                 'recipient': recipient,
                 'amount': amount,
-                'timestamp': time()
+                'timestamp': time
             })
             return self.lastBlock['index'] + 1
 
-    def newMaliciousTransaction(self, txid: str, sender: str, recipient: str, amount: int) -> int:
+    def newMaliciousTransaction(self, txid: str, sender: str, recipient: str, amount: int, time) -> int:
         """
         sender: 送り元のアドレス
         recipient: 送り先のアドレス
@@ -101,7 +101,7 @@ class Blockchain(object):
                 'sender': sender,
                 'recipient': recipient,
                 'amount': amount,
-                'timestamp': time(),
+                'timestamp': time,
                 'ignore': True
             })
             return self.lastBlock['index'] + 1
