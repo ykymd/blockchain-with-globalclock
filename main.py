@@ -14,7 +14,8 @@ app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
-isLogicalGlobalClock = False 
+isNoClock = False
+isLogicalGlobalClock = True
 isCausalMulticast = False
 if isLogicalGlobalClock and isCausalMulticast:
     cast = CBCast(nodeId)
@@ -45,15 +46,17 @@ def mine():
     lastProof = lastBlock['proof']
     proof = blockchain.proofOfWork(lastProof)
     reward = 100
+    timestamp = time() if not isNoClock else 0
 
     blockchain.newTransaction(
         txid=str(uuid4()).replace('-', ''),
         sender="0",
         recipient=nodeId,
-        amount=reward
+        amount=reward.amount,
+        time=timestamp
     )
 
-    block = blockchain.newBlock(proof)
+    block = blockchain.newBlock(proof, None, timestamp)
     response = {
         'message': "New Block Forged",
         'index': block['index'],
@@ -95,16 +98,17 @@ def newTransactionLate():
 @app.route('/transaction/sim/ds', methods=['POST'])
 def doubleSpending():
     values = request.json
+    timestamp = time() if not isNoClock else 0
 
     sender = values.get("sender", nodeId)
     txid = values.get("txid", str(uuid4()).replace('-', ''))
     recipient = values['recipient']
     amount = values['amount']
-    index = blockchain.newMaliciousTransaction(txid, sender, recipient, amount)
+    index = blockchain.newMaliciousTransaction(txid, sender, recipient, amount, timestamp)
 
     # トランザクションをもう一つ作る
     txid = str(uuid4()).replace('-', '')
-    index = blockchain.newTransaction(txid, sender, recipient, amount)
+    index = blockchain.newTransaction(txid, sender, recipient, amount, timestamp)
     if index is None:
         response = {'message': f'Transaction was already added'}
     else:
@@ -134,12 +138,13 @@ def createTransaction(values):
     txid = values.get("txid", str(uuid4()).replace('-', ''))
     recipient = values['recipient']
     amount = values['amount']
-    index = blockchain.newTransaction(txid, sender, recipient, amount)
+    timestamp = time() if not isNoClock else 0
+    index = blockchain.newTransaction(txid, sender, recipient, amount, timestamp)
     if index is None:
         response = {'message': f'Transaction was already added'}
     else:
         count = blockchain.pool.find().count()
-        timestamp = time()
+        timestamp = time() if not isNoClock else ""
         print(f'[{timestamp}]Tx will be added to Block {index}, count: {count}')
         response = {
             'message': f'Transaction will be added to Block {index}',
