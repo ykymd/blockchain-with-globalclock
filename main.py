@@ -14,8 +14,8 @@ app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
-isNoClock = False
-isLogicalGlobalClock = True
+isNoClock = True
+isLogicalGlobalClock = False
 isCausalMulticast = False
 if isLogicalGlobalClock and isCausalMulticast:
     cast = CBCast(nodeId)
@@ -44,7 +44,9 @@ def balance():
 def mine():
     lastBlock = blockchain.lastBlock
     lastProof = lastBlock['proof']
+    print(f"start: {time()}")
     proof = blockchain.proofOfWork(lastProof)
+    print(f"end: {time()}")
     reward = 100
     timestamp = time() if not isNoClock else 0
 
@@ -52,7 +54,7 @@ def mine():
         txid=str(uuid4()).replace('-', ''),
         sender="0",
         recipient=nodeId,
-        amount=reward.amount,
+        amount=reward,
         time=timestamp
     )
 
