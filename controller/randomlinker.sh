@@ -1,9 +1,9 @@
 #!/bin/sh
-#for i in `seq $1`
-#do
-#    id=$(($i+1))
-#    docker run --network myblockchain_blockchain controller python linker.py "http://myblockchain_bc_$id" "http://myblockchain_bc_$i"
-#done
+for i in `seq $1`
+do
+    id=$(($i+1))
+    docker run --network myblockchain_blockchain controller python linker.py "myblockchain_bc_$id" "myblockchain_bc_$i"
+done
 for i in `seq $1`
 do
     echo $i

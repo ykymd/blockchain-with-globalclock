@@ -7,5 +7,4 @@ docker run --network myblockchain_blockchain controller curl -sL -X POST \
   -H 'Content-Type: application/json' \
   -d '{"recipient": "053263f820054c2c8b3cec23c40a73a3", "amount": '$a' }' #&
 a=$(($a % $num + 1))
-sleep 1
 done
