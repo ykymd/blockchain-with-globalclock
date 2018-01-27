@@ -14,13 +14,13 @@ app = Flask(__name__)
 nodeId = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
-isNoClock = True
-isLogicalGlobalClock = False
-isCausalMulticast = False
+isNoClock = False
+isLogicalGlobalClock = True
+isCausalMulticast = True
 if isLogicalGlobalClock and isCausalMulticast:
     cast = CBCast(nodeId)
 elif isLogicalGlobalClock:
-    cast = Vector(nodeId)  # ベクタークロックにする
+    cast = Vector(nodeId)
 else:
     cast = Network(nodeId)
 print(f"nodeId: {nodeId}")
@@ -146,7 +146,7 @@ def createTransaction(values):
         response = {'message': f'Transaction was already added'}
     else:
         count = blockchain.pool.find().count()
-        timestamp = time() if not isNoClock else ""
+        timestamp = time()
         print(f'[{timestamp}]Tx will be added to Block {index}, count: {count}')
         response = {
             'message': f'Transaction will be added to Block {index}',
