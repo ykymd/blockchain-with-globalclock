@@ -10,6 +10,9 @@ mongoClient = MongoClient('localhost', 27017)
 db = mongoClient.gc_blockchain
 
 
+isClockBranch = False
+
+
 class Blockchain(object):
     def __init__(self):
         self.chain = db.chain
@@ -226,8 +229,15 @@ class Blockchain(object):
     @staticmethod
     def validBetterChain(target: list, comparison: list) -> bool:
         # proofの合計値が少ない方が最良のチェーンとする（できれば確率の低い方にしたい）
-        proofSumT = sum(list(map(lambda a: a["proof"], target)))
-        proofSumC = sum(list(map(lambda a: a["proof"], comparison)))
-        print(f'target: {proofSumT}')
-        print(f'comparison: {proofSumC}')
-        return proofSumT < proofSumC
+        if isClockBranch:
+            proofSumT = sum(list(map(lambda a: a["timestamp"], target)))
+            proofSumC = sum(list(map(lambda a: a["timestamp"], comparison)))
+            print(f'target: {proofSumT}')
+            print(f'comparison: {proofSumC}')
+            return proofSumT < proofSumC
+        else:
+            proofSumT = sum(list(map(lambda a: a["proof"], target)))
+            proofSumC = sum(list(map(lambda a: a["proof"], comparison)))
+            print(f'target: {proofSumT}')
+            print(f'comparison: {proofSumC}')
+            return proofSumT < proofSumC
