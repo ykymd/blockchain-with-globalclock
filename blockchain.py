@@ -128,8 +128,8 @@ class Blockchain(object):
             return {'index': 0, 'proof': 100}
         return self.chain.find({}, {'_id': 0}).sort([('index', -1)]).limit(1)[0]
 
-    def proofOfWork(self, lastProof: int) -> int:
-        proof = random.randint(0, 1000000)
+    def proofOfWork(self, lastProof: int, seed=None) -> int:
+        proof = random.randint(0, 1000000) if seed is None else seed
         while self.validProof(lastProof, proof) is False:
             proof += 1
         return proof

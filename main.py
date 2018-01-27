@@ -42,10 +42,11 @@ def balance():
 
 @app.route('/mine', methods=['GET'])
 def mine():
+    seed = request.args.get('seed')
     lastBlock = blockchain.lastBlock
     lastProof = lastBlock['proof']
     print(f"start: {time()}")
-    proof = blockchain.proofOfWork(lastProof)
+    proof = blockchain.proofOfWork(lastProof, seed)
     print(f"end: {time()}")
     reward = 100
     timestamp = time() if not isNoClock else 0
