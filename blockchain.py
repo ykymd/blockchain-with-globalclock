@@ -133,6 +133,7 @@ class Blockchain(object):
 
     def proofOfWork(self, lastProof: int, seed=None) -> int:
         proof = 0 if seed is None else int(seed)
+        print(f"seed: {proof}")
         while self.validProof(lastProof, proof) is False:
             proof += 1
         return proof
@@ -141,7 +142,7 @@ class Blockchain(object):
     def validProof(lastProof: int, proof: int) -> bool:
         guess = f'{lastProof}{proof}'.encode()
         guessHash = hashlib.sha256(guess).hexdigest()
-        return guessHash[:4] == "0000"
+        return guessHash[:5] == "00000"
 
     def validTx(self, tx: dict) -> bool:
         required = ['txid', 'sender', 'recipient', 'amount']
